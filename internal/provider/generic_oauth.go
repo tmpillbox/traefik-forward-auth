@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 
 	"golang.org/x/oauth2"
@@ -19,6 +20,8 @@ type GenericOAuth struct {
 	ClientSecret string   `long:"client-secret" env:"CLIENT_SECRET" description:"Client Secret" json:"-"`
 	Scopes       []string `long:"scope" env:"SCOPE" env-delim:"," default:"profile" default:"email" description:"Scopes"`
 	TokenStyle   string   `long:"token-style" env:"TOKEN_STYLE" default:"header" choice:"header" choice:"query" description:"How token is presented when querying the User URL"`
+	UserKey      string   `long:"user-key" env:"USER_KEY" default:"email" description:"Key in user URL body that contains username"`
+	UserFormat   string   `long:"user-format" env:"USER_FORMAT" description:"Sprintf format to pass username through"`
 
 	OAuthProvider
 }
@@ -90,7 +93,19 @@ func (o *GenericOAuth) GetUser(token string) (User, error) {
 	}
 
 	defer res.Body.Close()
-	err = json.NewDecoder(res.Body).Decode(&user)
+	body, err := io.ReadAll(res.Body)
+
+	if err == nil {
+		var result map[string]interface{}
+		err = json.Unmarshal(body, &result)
+		if err == nil {
+			username := result[o.UserKey].(string)
+			if o.UserFormat != "" {
+				username = fmt.Sprintf(o.UserFormat, username)
+			}
+			user.Email = username
+		}
+	}
 
 	return user, err
 }
