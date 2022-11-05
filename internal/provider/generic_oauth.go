@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
+	"io/ioutil"
 	"net/http"
 
 	"golang.org/x/oauth2"
@@ -93,7 +93,7 @@ func (o *GenericOAuth) GetUser(token string) (User, error) {
 	}
 
 	defer res.Body.Close()
-	body, err := io.ReadAll(res.Body)
+	body, err := ioutil.ReadAll(res.Body)
 
 	if err == nil {
 		var result map[string]interface{}
